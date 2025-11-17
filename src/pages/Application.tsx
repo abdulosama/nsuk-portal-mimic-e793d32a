@@ -6,30 +6,62 @@ import ContactDetailsStep from "@/components/application/ContactDetailsStep";
 import NextOfKinStep from "@/components/application/NextOfKinStep";
 import ProgrammeStep from "@/components/application/ProgrammeStep";
 import PaymentStep from "@/components/application/PaymentStep";
+import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
+import { useToast } from "@/hooks/use-toast";
 
 const Application = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({});
+  const [isStepValid, setIsStepValid] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const progress = (currentStep / 5) * 100;
+  const totalSteps = 5;
+  const progress = (currentStep / totalSteps) * 100;
 
   const handleNext = () => {
-    if (currentStep < 5) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      navigate("/dashboard");
+    if (!isStepValid && currentStep < 5) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      if (currentStep < totalSteps) {
+        setCurrentStep(currentStep + 1);
+        setIsStepValid(false);
+      } else {
+        navigate("/dashboard");
+      }
+      setIsLoading(false);
+    }, 500);
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      setIsLoading(true);
+      setTimeout(() => {
+        setCurrentStep(currentStep - 1);
+        setIsLoading(false);
+      }, 300);
     }
   };
 
   const handleReset = () => {
-    setFormData({});
+    if (confirm("Are you sure you want to reset all form data?")) {
+      setFormData({});
+      setIsStepValid(false);
+      toast({
+        title: "Form Reset",
+        description: "All form data has been cleared.",
+      });
+    }
   };
 
   return (
@@ -51,47 +83,83 @@ const Application = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-8">
-          {currentStep === 1 && <PersonalDetailsStep formData={formData} setFormData={setFormData} />}
-          {currentStep === 2 && <ContactDetailsStep formData={formData} setFormData={setFormData} />}
-          {currentStep === 3 && <NextOfKinStep formData={formData} setFormData={setFormData} />}
-          {currentStep === 4 && <ProgrammeStep formData={formData} setFormData={setFormData} />}
-          {currentStep === 5 && <PaymentStep />}
+        <div className="bg-card rounded-lg shadow-sm border p-8">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader size="lg" />
+              <p className="text-muted-foreground mt-4">Loading...</p>
+            </div>
+          ) : (
+            <>
+              {currentStep === 1 && (
+                <PersonalDetailsStep 
+                  formData={formData} 
+                  setFormData={setFormData} 
+                  onValidationChange={setIsStepValid}
+                />
+              )}
+              {currentStep === 2 && (
+                <ContactDetailsStep 
+                  formData={formData} 
+                  setFormData={setFormData}
+                  onValidationChange={setIsStepValid}
+                />
+              )}
+              {currentStep === 3 && (
+                <NextOfKinStep 
+                  formData={formData} 
+                  setFormData={setFormData}
+                  onValidationChange={setIsStepValid}
+                />
+              )}
+              {currentStep === 4 && (
+                <ProgrammeStep 
+                  formData={formData} 
+                  setFormData={setFormData}
+                  onValidationChange={setIsStepValid}
+                />
+              )}
+              {currentStep === 5 && <PaymentStep />}
 
-          <div className="flex items-center justify-end gap-3 mt-8">
-            {currentStep > 1 && currentStep < 5 && (
-              <button
-                onClick={handlePrevious}
-                className="px-6 py-2 bg-slate-500 text-white rounded hover:bg-slate-600"
-              >
-                Previous
-              </button>
-            )}
-            {currentStep < 5 && (
-              <button
-                onClick={handleReset}
-                className="px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Reset
-              </button>
-            )}
-            {currentStep < 5 && (
-              <button
-                onClick={handleNext}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-              >
-                Proceed
-              </button>
-            )}
-            {currentStep === 5 && (
-              <button
-                onClick={handlePrevious}
-                className="px-6 py-2 bg-slate-500 text-white rounded hover:bg-slate-600"
-              >
-                Previous
-              </button>
-            )}
-          </div>
+              <div className="flex items-center justify-end gap-3 mt-8">
+                {currentStep > 1 && currentStep < 5 && (
+                  <Button
+                    onClick={handlePrevious}
+                    variant="secondary"
+                    disabled={isLoading}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {currentStep < 5 && (
+                  <Button
+                    onClick={handleReset}
+                    variant="destructive"
+                    disabled={isLoading}
+                  >
+                    Reset
+                  </Button>
+                )}
+                {currentStep < 5 && (
+                  <Button
+                    onClick={handleNext}
+                    disabled={isLoading || !isStepValid}
+                  >
+                    Proceed
+                  </Button>
+                )}
+                {currentStep === 5 && (
+                  <Button
+                    onClick={handlePrevious}
+                    variant="secondary"
+                    disabled={isLoading}
+                  >
+                    Previous
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </ApplicationLayout>
